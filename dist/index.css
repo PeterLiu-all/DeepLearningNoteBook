@@ -1,0 +1,8 @@
+.sidebar-nav ul li {
+    margin-left: 25px;
+}
+
+.sidebar-nav {
+    line-height: 1.5em !important;
+    padding-bottom: 76px;
+}
