@@ -7,3 +7,4 @@
   * [线性回归pytorch优化版](SimpleImplement/LinearRegression_optimized.md)
 * softmax回归
   * [理论概述](softmax/intro.md)
+  * [从Mnist获取已经训练好的数据](softmax/图像识别.md)
