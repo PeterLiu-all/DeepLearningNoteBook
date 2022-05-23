@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 
 ## 从MNIST获取数据
 ```python
-# 获得的是Mnist中已经训练好的数据
+# 获得的是Mnist中标注过的数据
 trained_set = torchvision.datasets.FashionMNIST(root='~/Datasets/FashionMNIST', train=True, download=False,
                                                 transform=transforms.ToTensor())
 ```
