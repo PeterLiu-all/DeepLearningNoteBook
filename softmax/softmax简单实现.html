@@ -1,0 +1,182 @@
+<h1 id="softmax简单实现">softmax简单实现</h1>
+<h2 id="需要导入的库">需要导入的库</h2>
+<div class="sourceCode" id="cb1">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchvision</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchvision.transforms <span class="im">as</span> transforms</span></code></pre>
+</div>
+<h2 id="定义需要的函数">定义需要的函数</h2>
+<blockquote>
+  <p>一次统计学习由学习的模型，学习的策略，学习的算法组成</p>
+</blockquote>
+<h3 id="定义模型函数">定义模型函数</h3>
+<p>定义softmax函数，将非线性引入线性回归之中</p>
+<div class="sourceCode" id="cb2">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 定义softmax</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> softmax(Oi: torch.Tensor):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    Oi_exp <span class="op">=</span> Oi.exp()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Oi_exp<span class="op">/</span>(Oi_exp.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>, keepdim<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 定义模型</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> net(X: torch.Tensor, W: torch.Tensor, b: torch.Tensor):</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> softmax(torch.mm(X.view((<span class="op">-</span><span class="dv">1</span>, W.size()[<span class="dv">0</span>])), W)<span class="op">+</span>b)</span></code></pre>
+</div>
+<h3 id="定义交叉熵损失函数">定义交叉熵损失函数</h3>
+<p>形式上是对数损失函数</p>
+<p>依靠经验误差对模型进行选择</p>
+<div class="sourceCode" id="cb3">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 定义Loss函数</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 交叉熵损失函数</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 表现为对数损失函数</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Loss(y: torch.Tensor, y_hat: torch.Tensor):</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 这里的y是n*1的矩阵，而y_hat是n*j</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span> torch.log(y_hat.gather(<span class="dv">1</span>, y.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))).<span class="bu">sum</span>()</span></code></pre>
+</div>
+<h3 id="定义准确率">定义准确率</h3>
+<div class="sourceCode" id="cb4">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accuracy(y: torch.Tensor, y_hat: torch.Tensor):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 如果某一次模型预测结果与真实结果相同，就返回1，否则返回0</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 用argmax函数获取y_hat中最大项的索引（0~9），与真实结果对比</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 转化为float后加和，取其中的值返回</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (y_hat.argmax(<span class="dv">1</span>) <span class="op">==</span> y).<span class="bu">float</span>().<span class="bu">sum</span>().item()</span></code></pre>
+</div>
+<h3 id="定义优化算法">定义优化算法</h3>
+<p>和前面一样的</p>
+<div class="sourceCode" id="cb5">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 定义优化算法</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sgd(params, lr, batch_size):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> param <span class="kw">in</span> params:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 学习率就是一个用于控制下降幅度的常数</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 权重和偏移优化</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        param.data <span class="op">-=</span> lr<span class="op">*</span>param.grad <span class="op">/</span> batch_size</span></code></pre>
+</div>
+<h3 id="定义数据分批的函数">定义数据分批的函数</h3>
+<div class="sourceCode" id="cb6">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> data_iter(mnist_test, batch_size):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> torch.utils.data.DataLoader(mnist_test, batch_size<span class="op">=</span>batch_size, shuffle<span class="op">=</span><span class="va">True</span>, num_workers<span class="op">=</span><span class="dv">0</span>)</span></code></pre>
+</div>
+<h3 id="训练函数">训练函数</h3>
+<p>只要获取到了训练好的权重和偏移，就相当于获得了训练好的模型</p>
+<div class="sourceCode" id="cb7">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train(n_epoches: <span class="bu">int</span>, lr: <span class="bu">float</span>, w_hat: torch.Tensor, b_hat: torch.Tensor,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>          batch: <span class="bu">int</span>, data: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    n_features <span class="op">=</span> <span class="bu">len</span>(data)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 一共拟合训练数据n_epoch次</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(n_epoches):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 初始化某一次的经验误差，准确率</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        train_l, ac <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">0.0</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 随机梯度下降法，将数据分批</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> f, lb <span class="kw">in</span> data_iter(data, batch):</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            y_hat <span class="op">=</span> net(f, w_hat, b_hat)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 计算当前批次经验损失并与上一批的损失加和</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>            l <span class="op">=</span> Loss(lb, y_hat).<span class="bu">sum</span>()</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>            train_l <span class="op">+=</span> l</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 计算准确率</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>            ac <span class="op">+=</span> accuracy(lb, y_hat)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 反向求偏导</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>            l.backward()</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 反向优化模型</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            sgd([w_hat, b_hat], lr, batch)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>            w_hat.grad.data.zero_()</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>            b_hat.grad.data.zero_()</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 将误差总和，准确率总和除以训练样本容量</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        train_l <span class="op">/=</span> n_features</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        ac <span class="op">/=</span> n_features</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;epoch </span><span class="sc">{</span>epoch<span class="sc">}</span><span class="ss">, loss:</span><span class="sc">{</span>train_l<span class="sc">}</span><span class="ss">, accuracy:</span><span class="sc">{</span>ac<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;hat weight:</span><span class="sc">{</span>w_hat<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;hat bias:</span><span class="sc">{</span>b_hat<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> w_hat, b_hat</span></code></pre>
+</div>
+<h3 id="测试训练成果">测试训练成果</h3>
+<div class="sourceCode" id="cb8">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test(test_iter: torch.Tensor, w: torch.Tensor, b: torch.Tensor):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    ac <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    batch_size <span class="op">=</span> <span class="bu">len</span>(test_iter)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> f, lb <span class="kw">in</span> data_iter(test_iter, batch_size):</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        y_hypo <span class="op">=</span> net(f, w, b)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        ac <span class="op">+=</span> accuracy(lb, y_hypo)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    ac <span class="op">/=</span> batch_size</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;test accuracy:</span><span class="sc">{</span>ac<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre>
+</div>
+<h2 id="开始训练">开始训练</h2>
+<div class="sourceCode" id="cb9">
+  <pre
+    class="sourceCode python"
+  ><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    batch_size <span class="op">=</span> <span class="dv">256</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 得到的是训练组和测试组</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 用训练组来训练模型，用测试组来测试模型准确度</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    train_iter <span class="op">=</span> torchvision.datasets.FashionMNIST(root<span class="op">=</span><span class="st">&#39;~/Datasets/FashionMNIST&#39;</span>, train<span class="op">=</span><span class="va">True</span>, download<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                                                   transform<span class="op">=</span>transforms.ToTensor())</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    test_iter <span class="op">=</span> torchvision.datasets.FashionMNIST(root<span class="op">=</span><span class="st">&#39;~/Datasets/FashionMNIST&#39;</span>, train<span class="op">=</span><span class="va">False</span>, download<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                                                  transform<span class="op">=</span>transforms.ToTensor())</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 行数*列数，是一张图的像素总量</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    num_inputs <span class="op">=</span> <span class="dv">28</span><span class="op">*</span><span class="dv">28</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 标注问题，只有0~9一共10个标注</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    num_outputs <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 初始化权重与偏移</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    w <span class="op">=</span> torch.tensor(np.random.normal(</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="dv">0</span>, <span class="fl">0.01</span>, (num_inputs, num_outputs)), dtype<span class="op">=</span>torch.<span class="bu">float</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> torch.zeros(num_outputs, dtype<span class="op">=</span>torch.<span class="bu">float</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 训练模型</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    w, b <span class="op">=</span> train(<span class="dv">10</span>, <span class="fl">0.03</span>, w, b, batch_size, train_iter)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 测试模型</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    test(test_iter, w, b)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre>
+</div>
+<h2 id="训练结果">训练结果</h2>
+<pre class="plain"><code>epoch 0, loss:1.0356025695800781, accuracy:0.69585
+epoch 1, loss:0.709172248840332, accuracy:0.7767
+epoch 2, loss:0.6368897557258606, accuracy:0.7977333333333333
+epoch 3, loss:0.597575306892395, accuracy:0.80825
+epoch 4, loss:0.5720041394233704, accuracy:0.8157666666666666
+epoch 5, loss:0.5530234575271606, accuracy:0.8211666666666667
+epoch 6, loss:0.5385252833366394, accuracy:0.8246333333333333
+epoch 7, loss:0.5267878770828247, accuracy:0.8280666666666666
+epoch 8, loss:0.5172721743583679, accuracy:0.8301
+epoch 9, loss:0.5093177556991577, accuracy:0.8327666666666667
+hat weight:tensor([[ 3.6310e-03, -7.5329e-03,  3.7053e-03,  ...,  3.1249e-02,
+         -2.1517e-03,  2.2466e-03],
+        [ 2.1203e-02, -8.7482e-03,  1.5493e-02,  ..., -2.7951e-03,
+         -6.2426e-03,  2.5957e-02],
+        [ 1.7465e-02,  1.5385e-03, -2.2081e-03,  ...,  1.4364e-02,
+          2.8634e-03, -2.0297e-02],
+        ...,
+        [ 9.7792e-05,  3.9122e-03,  2.1818e-02,  ..., -1.7938e-02,
+          2.0017e-02, -7.0280e-03],
+        [-2.0205e-04, -1.5446e-02,  3.1180e-03,  ..., -1.0438e-02,
+         -2.1133e-03, -6.5218e-03],
+        [-3.9553e-03,  4.7967e-03, -1.0672e-02,  ..., -4.2892e-03,
+         -4.3317e-04, -1.1061e-02]], requires_grad=True)
+hat bias:tensor([ 0.0898, -0.0810, -0.0846,  0.0271, -0.4667,  1.0832,  0.2318, -0.0801,       
+        -0.2585, -0.4609], requires_grad=True)
+test accuracy:0.8204</code></pre>
